@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "domus-economy"
+version = "0.1.0"
+description = "Gemeinsamer Wirtschafts-Kern für Alfred (Dukaten) und Vale (Siegel) — Domus Velata"
+requires-python = ">=3.11"
+dependencies = ["asyncpg>=0.30"]
+
+[tool.setuptools]
+packages = ["domus_economy"]
+
+[tool.setuptools.package-data]
+domus_economy = ["migrations/*.sql"]
