@@ -1,8 +1,8 @@
 """
-domus_economy — gemeinsamer Wirtschafts-Kern für Alfred (Dukaten) und Vale (Siegel).
+domus_economy — gemeinsamer Wirtschafts-Kern für Alfred und Vale (Dukaten).
 
 Deterministisch, kein LLM. Eigene Postgres (ECONOMY_DATABASE_URL).
-Konzept: docs/waehrungssystem.md · Umsetzung: docs/aufgabe-waehrungssystem.md.
+Konzept: Domus Velata / Alfred / docs / waehrungssystem.md.
 
 Nutzung:
     from domus_economy import db, wallets, faucets, shop, roles, spotlight, boosters, markers, config

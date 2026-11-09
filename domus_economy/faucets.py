@@ -2,8 +2,8 @@
 domus_economy.faucets — woher die Währung kommt.
 
 award_message / award_voice speisen Dukaten; ansehen.py (Alfred) ruft sie beim
-XP-Vergeben mit auf (Entscheidung „gekoppelt"). award_veil speist Siegel, nur
-für verifizierte Mitglieder hinterm Schleier. claim_daily = /gunst.
+XP-Vergeben mit auf (Entscheidung „gekoppelt"). award_veil speist ebenfalls
+Dukaten, aber nur für verifizierte Mitglieder hinterm Schleier. claim_daily = /gunst.
 
 Cooldowns + Tages-Caps in earn_cooldowns, alles atomar. Tages-Grenze: Europe/Berlin.
 """
@@ -57,7 +57,7 @@ async def _faucet(con, user_id: int, faucet: str, amount: int, cap: int,
             "SET last_at = $3, day = $4, day_sum = $5",
             user_id, faucet, now, today, day_sum)
         return 0
-    await _credit(con, user_id, "dukaten" if faucet != "veil" else "siegel", grant, reason)
+    await _credit(con, user_id, "dukaten", grant, reason)
     await con.execute(
         "INSERT INTO earn_cooldowns (user_id, faucet, last_at, day, day_sum) "
         "VALUES ($1,$2,$3,$4,$5) ON CONFLICT (user_id, faucet) DO UPDATE "
@@ -88,10 +88,11 @@ async def award_voice(user_id: int, minutes: int, *, is_booster: bool = False) -
 
 
 async def award_veil(user_id: int, *, is_verified: bool) -> int:
+    """Aktivitäts-Faucet hinter dem Schleier; schreibt Dukaten gut."""
     if not is_verified:
         return 0
     async with db.pool().acquire() as con, con.transaction():
-        return await _faucet(con, user_id, "veil", int(await config.get("veil_siegel")),
+        return await _faucet(con, user_id, "veil", int(await config.get("veil_dukaten")),
                              int(await config.get("veil_cap_day")),
                              int(await config.get("veil_cooldown_s")), "faucet_veil")
 
@@ -117,7 +118,7 @@ async def claim_daily(user_id: int, *, is_booster: bool = False) -> int:
     return amount
 
 
-async def milestone(user_id: int, key: str, currency: str, amount: int) -> int:
+async def milestone(user_id: int, key: str, amount: int) -> int:
     """Einmalige Meilenstein-Gutschrift (Vorstellung, erster Forenbeitrag …).
     Nutzt markers als Dedup. Gibt den gutgeschriebenen Betrag zurück (0 = schon gehabt)."""
     async with db.pool().acquire() as con, con.transaction():
@@ -126,5 +127,5 @@ async def milestone(user_id: int, key: str, currency: str, amount: int) -> int:
             "ON CONFLICT DO NOTHING RETURNING id", user_id, f"milestone:{key}")
         if got is None:
             return 0
-        await _credit(con, user_id, currency, amount, "milestone", meta={"key": key})
+        await _credit(con, user_id, "dukaten", amount, "milestone", meta={"key": key})
     return amount

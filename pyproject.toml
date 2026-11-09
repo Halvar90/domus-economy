@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "domus-economy"
 version = "0.1.0"
-description = "Gemeinsamer Wirtschafts-Kern für Alfred (Dukaten) und Vale (Siegel) — Domus Velata"
+description = "Gemeinsamer Dukaten-Wirtschaftskern für Alfred und Vale — Domus Velata"
 requires-python = ">=3.11"
 dependencies = ["asyncpg>=0.30"]
 

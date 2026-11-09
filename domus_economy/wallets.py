@@ -1,5 +1,5 @@
 """
-domus_economy.wallets — Kontostand, Gutschrift, Abbuchung, Tausch.
+domus_economy.wallets — Kontostand, Gutschrift, Abbuchung.
 
 Jede Bewegung schreibt ATOMAR eine transactions-Zeile. Abbuchung nie
 "lesen-prüfen-schreiben", sondern bedingtes UPDATE (dukaten >= betrag).
@@ -11,7 +11,7 @@ import json
 
 from . import config, db
 
-CURRENCIES = ("dukaten", "siegel")
+CURRENCIES = ("dukaten",)
 
 
 class EconomyError(Exception):
@@ -36,9 +36,8 @@ async def _ensure_wallet(con, user_id: int) -> None:
 
 async def balance(user_id: int) -> dict[str, int]:
     row = await db.pool().fetchrow(
-        "SELECT dukaten, siegel FROM wallets WHERE user_id = $1", user_id)
-    return {"dukaten": row["dukaten"], "siegel": row["siegel"]} if row \
-        else {"dukaten": 0, "siegel": 0}
+        "SELECT dukaten FROM wallets WHERE user_id = $1", user_id)
+    return {"dukaten": row["dukaten"]} if row else {"dukaten": 0}
 
 
 async def _credit(con, user_id: int, currency: str, amount: int, reason: str,
@@ -114,20 +113,6 @@ async def transfer(from_id: int, to_id: int, currency: str, amount: int) -> None
         await con.execute(
             "UPDATE peer_gifts SET given = given + $2 WHERE user_id = $1 AND day = CURRENT_DATE",
             from_id, amount)
-
-
-async def exchange_siegel_to_dukaten(user_id: int, siegel_amount: int) -> dict[str, int]:
-    """Nur diese Richtung. Kurs aus config. Gibt neue Stände zurück."""
-    if siegel_amount <= 0:
-        raise EconomyError("Betrag muss > 0 sein.")
-    rate = await config.get("exchange_siegel_to_dukaten")
-    dukaten = siegel_amount * int(rate)
-    async with db.pool().acquire() as con, con.transaction():
-        await _debit(con, user_id, "siegel", siegel_amount, "exchange",
-                     meta={"to": "dukaten", "rate": rate})
-        await _credit(con, user_id, "dukaten", dukaten, "exchange",
-                      meta={"from": "siegel", "rate": rate})
-    return await balance(user_id)
 
 
 async def admin_set(user_id: int, currency: str, amount: int) -> int:

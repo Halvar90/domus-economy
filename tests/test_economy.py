@@ -28,8 +28,27 @@ async def _reset(pool):
 
 async def run():
     pool = await db.connect(URL)
+
+    # ── migration: merge legacy Siegel balances exactly once, 1:1 ──
+    await pool.execute(
+        "DELETE FROM economy_migrations WHERE name = '002_single_currency'")
+    await pool.execute(
+        "INSERT INTO wallets (user_id, dukaten, siegel) VALUES ($1, 17, 7) "
+        "ON CONFLICT (user_id) DO UPDATE SET dukaten = 17, siegel = 7", A)
+    migration_path = os.path.join(
+        os.path.dirname(__file__), "..", "domus_economy", "migrations",
+        "002_single_currency.sql")
+    with open(migration_path, encoding="utf-8") as migration_file:
+        migration = migration_file.read()
+    await pool.execute(migration)
+    await pool.execute(migration)
+    assert (await wallets.balance(A)) == {"dukaten": 24}
+    assert await pool.fetchval(
+        "SELECT count(*) FROM transactions WHERE user_id = $1 "
+        "AND reason = 'currency_consolidation'", A) == 1
+    ok = ["legacy Siegel → Dukaten 1:1, idempotent"]
+
     await _reset(pool)
-    ok = []
 
     # ── wallets: credit/debit atomar, nie unter 0 ──────────────────
     await wallets.credit(A, "dukaten", 100, "test")
@@ -54,11 +73,16 @@ async def run():
     assert (await wallets.balance(A))["dukaten"] == 0
     ok.append("kein doppel-debit bei Race")
 
-    # ── exchange: nur Siegel→Dukaten ──────────────────────────────
-    await wallets.credit(A, "siegel", 5, "test")
-    bal = await wallets.exchange_siegel_to_dukaten(A, 5)
-    assert bal["siegel"] == 0 and bal["dukaten"] == 50   # Kurs 1:10
-    ok.append("exchange Siegel→Dukaten (Kurs 10)")
+    # ── keine zweite Währung mehr ─────────────────────────────────
+    try:
+        await wallets.credit(A, "siegel", 5, "test")
+        raise AssertionError("Siegel müssen als Währung abgelehnt werden")
+    except wallets.EconomyError:
+        pass
+    assert await wallets.balance(A) == {"dukaten": 0}
+    assert wallets.CURRENCIES == ("dukaten",)
+    assert all(set(item["cost"]) == {"dukaten"} for item in shop.CATALOG.values())
+    ok.append("nur Dukaten-Wallet")
 
     # ── faucets: Cooldown + Tagescap ─────────────────────────────
     await _reset(pool)
@@ -89,10 +113,11 @@ async def run():
         pass
     ok.append("/gunst 1×/Tag")
 
-    # ── veil-Faucet nur verifiziert ────────────────────────────
+    # ── Schleier-Faucet schreibt Dukaten, nur verifiziert ─────
     assert await faucets.award_veil(A, is_verified=False) == 0
     assert await faucets.award_veil(A, is_verified=True) == 1
-    ok.append("Siegel-Faucet nur verifiziert")
+    assert (await wallets.balance(A))["dukaten"] == 51
+    ok.append("Schleier-Faucet schreibt Dukaten nur für Verifizierte")
 
     # ── shop: atomarer Kauf, Rollback bei Effekt-Fehler ────────
     await _reset(pool)
@@ -112,18 +137,21 @@ async def run():
     assert (await wallets.balance(A))["dukaten"] == 500, "Rollback bei Effekt-Fehler"
     ok.append("shop atomar + Rollback")
 
-    # ── Mischpreis prüft beide Währungen ──────────────────────
+    # ── Schleier-Artikel verwenden Dukaten ────────────────────
     await _reset(pool)
-    await wallets.admin_set(A, "dukaten", 500)
-    await wallets.admin_set(A, "siegel", 30)   # zu wenig Siegel (braucht 50)
+    await wallets.admin_set(A, "dukaten", 30)
     try:
         async with shop.purchase(A, "prestige", role_id=1):
             pass
-        raise AssertionError("Mischpreis-Kauf hätte scheitern müssen")
+        raise AssertionError("Kauf hätte wegen zu wenig Dukaten scheitern müssen")
     except InsufficientFunds:
         pass
-    assert (await wallets.balance(A))["dukaten"] == 500, "Dukaten dürfen nicht weg sein"
-    ok.append("Mischpreis atomar (beide Währungen)")
+    assert (await wallets.balance(A))["dukaten"] == 30
+    await wallets.admin_set(A, "dukaten", 500)
+    async with shop.purchase(A, "prestige", role_id=1) as rec:
+        assert rec.item["cost"] == {"dukaten": 500}
+    assert (await wallets.balance(A))["dukaten"] == 0
+    ok.append("Schleier-Shop verwendet Dukaten")
 
     # ── timed roles: Ablauf ──────────────────────────────────
     await _reset(pool)
@@ -148,11 +176,12 @@ async def run():
     assert r4.remove_from == 30 and r4.add_to is None
     ok.append("spotlight Round-Robin + offline überspringen")
 
-    # ── booster stipend: keine Doppelgutschrift ──────────────
+    # ── booster stipend: Dukaten, keine Doppelgutschrift ──────
     await _reset(pool)
     assert await boosters.grant_monthly(A) == 30
     assert await boosters.grant_monthly(A) == 0
-    ok.append("Stipendium neustart-sicher")
+    assert (await wallets.balance(A))["dukaten"] == 30
+    ok.append("Dukaten-Stipendium neustart-sicher")
 
     # ── markers: einmalig ───────────────────────────────────
     assert await markers.award(A, "gruendungsbewohner") is True

@@ -46,35 +46,34 @@ CATALOG: dict[str, dict] = {
         "cost": {"dukaten": 60}, "duration_days": None, "effect": "bot_attention",
         "desc": "eine kosmetische Aufmerksamkeit des Butlers"},
 
-    # ── Siegel-Laden (hinter dem Schleier) ─────────────────────────
+    # ── Dukaten-Artikel hinter dem Schleier (Zugang bleibt verifiziert) ──
     "schleier_rang": {
         "name": "Schleier-Dauer-Rang", "scope": "schleier",
-        "cost": {"siegel": 60}, "duration_days": 7, "tier": "schleier_rang",
+        "cost": {"dukaten": 60}, "duration_days": 7, "tier": "schleier_rang",
         "effect": "role", "rotation_eligible": True,
         "desc": "hoisted Rolle im Schleier-Bereich; nimmt an der Schleier-Rotation teil"},
     "schleier_kosmetik": {
         "name": "Schleier-Kosmetik (Titel/Farbe)", "scope": "schleier",
-        "cost": {"siegel": 40}, "duration_days": 7, "tier": "kosmetik",
+        "cost": {"dukaten": 40}, "duration_days": 7, "tier": "kosmetik",
         "effect": "role",
         "desc": "Titel/Farbe, die es ausschließlich hinter dem Schleier gibt"},
     "galerie_pin": {
         "name": "Priorität in der Galerie", "scope": "schleier",
-        "cost": {"siegel": 20}, "duration_days": None, "effect": "post_pin",
+        "cost": {"dukaten": 20}, "duration_days": None, "effect": "post_pin",
         "desc": "Hervorhebung eines Galerie-Beitrags"},
     "separee_schleier": {
         "name": "Privates Schleier-Séparée", "scope": "schleier",
-        "cost": {"siegel": 50}, "duration_days": None, "effect": "separee",
+        "cost": {"dukaten": 50}, "duration_days": None, "effect": "separee",
         "hours": 24,
         "desc": "eine kuratierte Runde hinter dem Schleier — nur ein Raum, keine Szene"},
     "vale_zuwendung": {
         "name": "Vale-Zuwendung", "scope": "schleier",
-        "cost": {"siegel": 15}, "duration_days": None, "effect": "bot_attention",
+        "cost": {"dukaten": 15}, "duration_days": None, "effect": "bot_attention",
         "desc": "eine kosmetische Aufmerksamkeit der Hausherrin"},
 
-    # ── Mischpreis — der Ort, an dem beide Währungen zusammenkommen ──
     "prestige": {
         "name": "Top-Prestige-Marker", "scope": "schleier",
-        "cost": {"dukaten": 500, "siegel": 50}, "duration_days": 14, "tier": "prestige",
+        "cost": {"dukaten": 500}, "duration_days": 14, "tier": "prestige",
         "effect": "role", "rotation_eligible": True,
         "desc": "höchster kombinierter Sichtbarkeits-Rang"},
 }

@@ -25,15 +25,13 @@ DEFAULTS: dict[str, Any] = {
     "voice_dukaten_min": 1,      # pro Minute (nur ≥ 2 ungemutet, wie ansehen.py)
     "voice_cap_day": 120,
     "gunst_dukaten": 50,         # /gunst täglich
-    # Faucet — Siegel (bewusst knapp)
-    "veil_siegel": 1,
+    # Verifizierter Aktivitäts-Faucet hinter dem Schleier (Dukaten)
+    "veil_dukaten": 1,
     "veil_cooldown_s": 180,
     "veil_cap_day": 15,
     # Booster
     "booster_multiplier": 1.5,   # auf Dukaten-Faucets
-    "siegel_stipend": 30,        # pro Monat, nur verifizierte Booster
-    # Tausch
-    "exchange_siegel_to_dukaten": 10,   # 1 Siegel → 10 Dukaten
+    "booster_stipend_dukaten": 30,  # pro Monat für alle Booster
     # Peer
     "gift_cap_day": 100,         # je Währung, pro Tag verschenkbar
     # Zeit-Rollen
